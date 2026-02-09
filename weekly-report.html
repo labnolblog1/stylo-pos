@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Weekly Report</title>
+<meta charset="UTF-8">
+<style>
+body { font-family: Arial; background:#f2f2f2; margin:0; }
+.header { background:black; color:white; padding:15px; text-align:center; }
+.container { max-width:900px; margin:20px auto; background:white; padding:20px; border-radius:10px; }
+.row { display:flex; justify-content:space-between; padding:6px 0; }
+.total { font-weight:bold; border-top:1px solid #ccc; margin-top:10px; padding-top:10px; }
+.salesman { border-bottom:1px dashed #ccc; margin-bottom:8px; padding-bottom:8px; }
+</style>
+</head>
+
+<body>
+
+<div class="header">Weekly Report</div>
+
+<div class="container">
+    Select Date:
+    <input type="date" id="weekDate">
+    <div id="report"></div>
+</div>
+
+<script>
+const sales = JSON.parse(localStorage.getItem("sales")) || [];
+const input = document.getElementById("weekDate");
+input.value = new Date().toISOString().slice(0,10);
+input.onchange = load;
+
+function load() {
+    const base = new Date(input.value);
+    const start = new Date(base);
+    start.setDate(base.getDate() - base.getDay());
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+
+    let perSalesman = {};
+    let totalSales = 0;
+    let totalCommission = 0;
+
+    sales.forEach(s => {
+        const d = new Date(s.date);
+        if (d >= start && d <= end) {
+            if (!perSalesman[s.salesman]) {
+                perSalesman[s.salesman] = { sales: 0, commission: 0 };
+            }
+            perSalesman[s.salesman].sales += s.amount;
+            perSalesman[s.salesman].commission += s.commission || 0;
+            totalSales += s.amount;
+            totalCommission += s.commission || 0;
+        }
+    });
+
+    let html = "";
+    for (let name in perSalesman) {
+        html += `
+            <div class="salesman">
+                <div class="row"><b>${name}</b></div>
+                <div class="row"><span>Sales</span><span>₹${perSalesman[name].sales}</span></div>
+                <div class="row"><span>Commission</span><span>₹${perSalesman[name].commission}</span></div>
+            </div>`;
+    }
+
+    document.getElementById("report").innerHTML =
+        html
+        ? html + `
+            <div class="total row"><span>Total Sales</span><span>₹${totalSales}</span></div>
+            <div class="total row"><span>Total Commission</span><span>₹${totalCommission}</span></div>`
+        : "<p>No data for this week.</p>";
+}
+
+load();
+</script>
+
+</body>
+</html>

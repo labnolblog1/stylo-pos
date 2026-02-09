@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Full Day Report</title>
+<meta charset="UTF-8">
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+}
+
+.header {
+    background: black;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    font-size: 22px;
+}
+
+.top-bar {
+    max-width: 900px;
+    margin: 15px auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+.salesman {
+    border-bottom: 1px dashed #ccc;
+    padding: 12px 0;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 18px;
+    margin: 4px 0;
+}
+
+.final {
+    font-weight: bold;
+    font-size: 20px;
+    margin-top: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Full Day Report</div>
+
+<div class="top-bar">
+    <button onclick="window.location.href='index.html'">⬅ Home</button>
+    <div>
+        Select Date:
+        <input type="date" id="datePicker">
+    </div>
+</div>
+
+<div class="container" id="report"></div>
+
+<script>
+const sales = JSON.parse(localStorage.getItem("sales")) || [];
+const dateInput = document.getElementById("datePicker");
+
+// default = today
+dateInput.value = new Date().toISOString().slice(0,10);
+dateInput.onchange = loadReport;
+
+function loadReport() {
+    const selectedDate = dateInput.value;
+    const reportBox = document.getElementById("report");
+    reportBox.innerHTML = "";
+
+    let perSalesman = {};
+
+    // group by salesman for selected date
+    sales.forEach(sale => {
+        if (sale.date === selectedDate) {
+            if (!perSalesman[sale.salesman]) {
+                perSalesman[sale.salesman] = { sales: 0, commission: 0 };
+            }
+            perSalesman[sale.salesman].sales += sale.amount;
+            perSalesman[sale.salesman].commission += sale.commission || 0;
+        }
+    });
+
+    const names = Object.keys(perSalesman);
+
+    if (names.length === 0) {
+        reportBox.innerHTML = "<p>No data for this date.</p>";
+        return;
+    }
+
+    names.forEach(name => {
+        const salesTotal = perSalesman[name].sales;
+        const commissionTotal = perSalesman[name].commission;
+
+        // FINAL LOCKED FORMULA
+        const finalTotal =
+            (salesTotal * 0.01) +
+            (commissionTotal - commissionTotal * 0.10);
+
+        reportBox.innerHTML += `
+            <div class="salesman">
+                <div class="row">
+                    <b>${name}</b>
+                </div>
+                <div class="row">
+                    <span>Sales</span>
+                    <span>₹${salesTotal.toFixed(2)}</span>
+                </div>
+                <div class="row">
+                    <span>Commission</span>
+                    <span>₹${commissionTotal.toFixed(2)}</span>
+                </div>
+                <div class="row final">
+                    <span>Final Total</span>
+                    <span>₹${finalTotal.toFixed(2)}</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// initial load
+loadReport();
+</script>
+
+</body>
+</html>

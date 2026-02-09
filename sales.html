@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Sales</title>
+<meta charset="UTF-8">
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+}
+
+.header {
+    background: black;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    font-size: 22px;
+}
+
+.home-btn {
+    margin: 10px;
+    padding: 8px 16px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.screen {
+    display: none;
+    padding: 20px;
+    max-width: 380px;
+    margin: auto;
+}
+.screen.active { display: block; }
+
+.display {
+    font-size: 36px;
+    text-align: right;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.keypad button {
+    height: 80px;
+    font-size: 24px;
+    border: none;
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+}
+
+.next-btn {
+    margin-top: 20px;
+    width: 100%;
+    height: 60px;
+    font-size: 20px;
+    background: black;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.salesman-btn {
+    padding: 18px;
+    margin: 10px 0;
+    font-size: 22px;
+    background: white;
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+}
+
+/* ===== RECEIPT DESIGN ===== */
+
+.receipt-outer {
+    width: 80mm;
+    border: 3px solid #000;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+.receipt {
+    border: 1px dashed #000;
+    padding: 10px;
+    font-size: 13px;
+    position: relative;
+}
+
+.receipt h3 {
+    text-align: center;
+    margin: 6px 0 4px 0;
+    font-size: 18px;
+    letter-spacing: 1px;
+}
+
+.receipt p {
+    text-align: center;
+    margin: 2px 0;
+    font-size: 12px;
+}
+
+.hr {
+    border-top: 1px dashed #000;
+    margin: 6px 0;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    margin: 4px 0;
+}
+
+.total {
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* ✅ SMALL BARCODE – NO OVERLAP */
+.barcode {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 55px;
+    height: 22px;
+}
+
+.footer {
+    text-align: center;
+    font-size: 12px;
+    margin-top: 8px;
+}
+
+@media print {
+    body * { visibility: hidden; }
+    .receipt-outer, .receipt-outer * { visibility: visible; }
+    .receipt-outer {
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Sales</div>
+<button class="home-btn" onclick="window.location.href='index.html'">⬅ Home</button>
+
+<!-- AMOUNT -->
+<div class="screen active" id="amountScreen">
+    <div class="display" id="amount">0</div>
+    <div class="keypad">
+        <button onclick="press('1')">1</button>
+        <button onclick="press('2')">2</button>
+        <button onclick="press('3')">3</button>
+        <button onclick="press('4')">4</button>
+        <button onclick="press('5')">5</button>
+        <button onclick="press('6')">6</button>
+        <button onclick="press('7')">7</button>
+        <button onclick="press('8')">8</button>
+        <button onclick="press('9')">9</button>
+        <button onclick="press('0')">0</button>
+        <button onclick="back()">⌫</button>
+    </div>
+    <button class="next-btn" onclick="nextToQty()">NEXT</button>
+</div>
+
+<!-- QTY -->
+<div class="screen" id="qtyScreen">
+    <div class="display" id="qty">1</div>
+    <div class="keypad">
+        <button onclick="pressQty('1')">1</button>
+        <button onclick="pressQty('2')">2</button>
+        <button onclick="pressQty('3')">3</button>
+        <button onclick="pressQty('4')">4</button>
+        <button onclick="pressQty('5')">5</button>
+        <button onclick="pressQty('6')">6</button>
+        <button onclick="pressQty('7')">7</button>
+        <button onclick="pressQty('8')">8</button>
+        <button onclick="pressQty('9')">9</button>
+        <button onclick="pressQty('0')">0</button>
+        <button onclick="qtyBack()">⌫</button>
+    </div>
+    <button class="next-btn" onclick="nextToSalesman()">NEXT</button>
+</div>
+
+<!-- SALESMAN -->
+<div class="screen" id="salesmanScreen">
+    <h2>Select Salesman</h2>
+    <div id="salesmanList"></div>
+</div>
+
+<!-- RECEIPT -->
+<div class="screen" id="receiptScreen">
+    <div id="receipt"></div>
+    <button class="next-btn" onclick="printBill()">PRINT</button>
+</div>
+
+<script>
+let amount = "0";
+let qty = "1";
+let selectedSalesman = "";
+let billNo = "";
+
+function generateBillNo() {
+    const c = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let r = "STYLO-";
+    for (let i = 0; i < 6; i++) r += c[Math.floor(Math.random() * c.length)];
+    return r;
+}
+
+function press(n) {
+    amount = amount === "0" ? n : amount + n;
+    document.getElementById("amount").innerText = amount;
+}
+function back() {
+    amount = amount.slice(0, -1) || "0";
+    document.getElementById("amount").innerText = amount;
+}
+function nextToQty() {
+    if (amount === "0") return alert("Enter amount");
+    show("qtyScreen");
+}
+
+function pressQty(n) {
+    qty = qty === "1" ? n : qty + n;
+    document.getElementById("qty").innerText = qty;
+}
+function qtyBack() {
+    qty = qty.slice(0, -1) || "1";
+    document.getElementById("qty").innerText = qty;
+}
+
+function nextToSalesman() {
+    show("salesmanScreen");
+    loadSalesmen();
+}
+
+function loadSalesmen() {
+    const list = document.getElementById("salesmanList");
+    const data = JSON.parse(localStorage.getItem("salespersons")) || [];
+    list.innerHTML = "";
+    data.forEach(name => {
+        const d = document.createElement("div");
+        d.className = "salesman-btn";
+        d.innerText = name;
+        d.onclick = () => selectSalesman(name);
+        list.appendChild(d);
+    });
+}
+
+function selectSalesman(name) {
+    selectedSalesman = name;
+    billNo = generateBillNo();
+    saveSale();
+    generateReceipt();
+    show("receiptScreen");
+}
+
+function generateReceipt() {
+    const now = new Date().toLocaleString();
+    const barcodeUrl =
+        "https://barcode.tec-it.com/barcode.ashx?data=" +
+        encodeURIComponent(billNo) +
+        "&code=Code128&dpi=72&modulewidth=0.4";
+
+    document.getElementById("receipt").innerHTML = `
+        <div class="receipt-outer">
+            <div class="receipt">
+
+                <img src="${barcodeUrl}" class="barcode">
+
+                <h3>STYLO DRESSES</h3>
+                <p>OPP FULGALI, DALGARWAD</p>
+                <p>Ph: 9924894279</p>
+
+                <div class="hr"></div>
+
+                <div class="row"><span>Bill No</span><span>${billNo}</span></div>
+                <div class="row"><span>Date</span><span>${now}</span></div>
+                <div class="row"><span>Salesman</span><span>${selectedSalesman}</span></div>
+
+                <div class="hr"></div>
+
+                <div class="row"><span>Amount</span><span>₹${amount}</span></div>
+                <div class="row"><span>Qty</span><span>${qty}</span></div>
+
+                <div class="hr"></div>
+
+                <div class="row total"><span>Total</span><span>₹${amount}</span></div>
+
+                <div class="hr"></div>
+
+                <div class="footer">Thank You!<br>Visit Again 🙏</div>
+
+            </div>
+        </div>
+    `;
+}
+
+function saveSale() {
+    const s = JSON.parse(localStorage.getItem("sales")) || [];
+    s.push({
+        date: new Date().toISOString().slice(0,10),
+        salesman: selectedSalesman,
+        amount: Number(amount),
+        commission: 0
+    });
+    localStorage.setItem("sales", JSON.stringify(s));
+}
+
+function printBill() {
+    window.print();
+    location.reload();
+}
+
+function show(id) {
+    document.querySelectorAll(".screen").forEach(x => x.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+</script>
+
+</body>
+</html>
