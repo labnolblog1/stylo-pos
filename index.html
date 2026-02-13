@@ -1,149 +1,151 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>POS Home</title>
+<title>STYLO DRESSES POS</title>
 <meta charset="UTF-8">
 
-<!-- Excel Library -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f2f2f2;
+body{
+    margin:0;
+    font-family:Arial;
+    background:#f2f2f2;
 }
-
-h1 {
-    text-align: center;
-    padding: 20px;
-    background: black;
-    color: white;
-    margin: 0;
+h1{
+    background:black;
+    color:white;
+    text-align:center;
+    padding:20px;
+    margin:0;
 }
-
-.container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
-    padding: 30px;
-    max-width: 1200px;
-    margin: auto;
+.container{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+    padding:30px;
 }
-
-.btn {
-    height: 140px;
-    font-size: 20px;
-    font-weight: bold;
-    border: none;
-    border-radius: 14px;
-    cursor: pointer;
-    background: white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    transition: 0.2s;
+button{
+    height:120px;
+    font-size:18px;
+    font-weight:bold;
+    border:none;
+    border-radius:12px;
+    cursor:pointer;
+    background:white;
+    box-shadow:0 4px 10px rgba(0,0,0,0.2);
 }
-
-.btn:hover {
-    transform: scale(1.03);
-    background: black;
-    color: white;
+button:hover{
+    background:black;
+    color:white;
 }
 </style>
 </head>
 
 <body>
 
-<h1>STYLO DRESSES – POS SYSTEM</h1>
+<h1>STYLO DRESSES</h1>
 
 <div class="container">
-    <!-- 🔹 ORIGINAL BUTTONS (UNCHANGED) -->
-    <button class="btn" onclick="go('sales.html')">Sales</button>
-    <button class="btn" onclick="go('commission.html')">Add Commission</button>
-    <button class="btn" onclick="go('salesman.html')">Add Salesman</button>
-    <button class="btn" onclick="go('day-report.html')">Full Day Report</button>
-    <button class="btn" onclick="go('weekly-report.html')">Weekly Report</button>
-    <button class="btn" onclick="go('monthly-report.html')">Monthly Report</button>
-
-    <!-- 🔹 EXTRA BUTTONS (NEW – EXCEL EXPORTS) -->
-    <button class="btn" onclick="exportDaily()">Export Daily Excel</button>
-    <button class="btn" onclick="exportWeekly()">Export Weekly Excel</button>
-    <button class="btn" onclick="exportMonthly()">Export Monthly Excel</button>
+    <button onclick="go('sales.html')">Sales</button>
+    <button onclick="go('commission.html')">Add Commission</button>
+    <button onclick="go('salesman.html')">Add Salesman</button>
+    <button onclick="go('day-report.html')">Full Day Report</button>
+    <button onclick="go('weekly-report.html')">Weekly Report</button>
+    <button onclick="go('monthly-report.html')">Monthly Report</button>
+    <button onclick="exportDailyExcel()">Export Daily Excel</button>
 </div>
 
 <script>
-function go(page) {
+
+function go(page){
     window.location.href = page;
 }
 
-/* ===== COMMON FILTER ===== */
-function getFilteredSales(filterFn) {
-    const sales = JSON.parse(localStorage.getItem("sales")) || [];
-    return sales.filter(filterFn).map(sale => ({
-        Date: sale.date || "",
-        Salesman: sale.salesman || "",
-        SalesAmount: sale.amount || 0,
-        Commission: sale.commission || 0
-    }));
-}
+/* ============================= */
+/*   EXPORT DAILY EXCEL (FINAL) */
+/* ============================= */
 
-/* ===== DAILY EXPORT ===== */
-function exportDaily() {
+function exportDailyExcel(){
+
     const today = new Date().toISOString().slice(0,10);
-    const data = getFilteredSales(s => s.date === today);
+    const sales = JSON.parse(localStorage.getItem("sales")) || [];
+    const todaySales = sales.filter(s => s.date === today);
 
-    if (data.length === 0) {
-        alert("No sales for today");
+    if(todaySales.length === 0){
+        alert("No sales today.");
         return;
     }
 
-    exportExcel(data, "STYLO_DRESSES_DAILY_SALES.xlsx");
-}
+    // Unique Salesmen
+    const salesmen = [...new Set(todaySales.map(s => s.salesman))];
 
-/* ===== WEEKLY EXPORT ===== */
-function exportWeekly() {
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(today.getDate() - 6);
-
-    const data = getFilteredSales(s => {
-        const d = new Date(s.date);
-        return d >= start && d <= today;
+    // Group Sales Per Salesman
+    let grouped = {};
+    salesmen.forEach(name => {
+        grouped[name] = todaySales.filter(s => s.salesman === name);
     });
 
-    if (data.length === 0) {
-        alert("No sales for this week");
-        return;
+    let rows = [];
+
+    /* HEADER ROW (Salesman Names) */
+    let headerRow = [];
+    salesmen.forEach(name => {
+        headerRow.push(name);
+        headerRow.push(""); // Commission column
+    });
+    rows.push(headerRow);
+
+    /* SALES + COMMISSION ROWS */
+    let maxRows = Math.max(...salesmen.map(name => grouped[name].length));
+
+    for(let i=0;i<maxRows;i++){
+        let row = [];
+        salesmen.forEach(name => {
+            let sale = grouped[name][i];
+            if(sale){
+                row.push(sale.amount);
+                row.push(sale.commission);
+            } else {
+                row.push("");
+                row.push("");
+            }
+        });
+        rows.push(row);
     }
 
-    exportExcel(data, "STYLO_DRESSES_WEEKLY_SALES.xlsx");
-}
+    /* BLANK ROW */
+    rows.push([]);
 
-/* ===== MONTHLY EXPORT ===== */
-function exportMonthly() {
-    const today = new Date();
-    const m = today.getMonth();
-    const y = today.getFullYear();
+    /* CALCULATION ROWS */
+    let finalRow = [];
 
-    const data = getFilteredSales(s => {
-        const d = new Date(s.date);
-        return d.getMonth() === m && d.getFullYear() === y;
+    salesmen.forEach(name => {
+
+        const totalSales = grouped[name].reduce((a,b)=>a+b.amount,0);
+        const totalCommission = grouped[name].reduce((a,b)=>a+b.commission,0);
+
+        const onePercentSales = totalSales * 0.01;
+        const tenPercentCommission = totalCommission * 0.10;
+
+        const adjustedCommission = totalCommission - tenPercentCommission;
+
+        const finalTotal = onePercentSales + adjustedCommission;
+
+        finalRow.push("Final Total:");
+        finalRow.push(finalTotal);
     });
 
-    if (data.length === 0) {
-        alert("No sales for this month");
-        return;
-    }
+    rows.push(finalRow);
 
-    exportExcel(data, "STYLO_DRESSES_MONTHLY_SALES.xlsx");
-}
-
-/* ===== EXCEL CREATOR ===== */
-function exportExcel(data, filename) {
-    const worksheet = XLSX.utils.json_to_sheet(data);
+    /* CREATE WORKSHEET */
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sales");
-    XLSX.writeFile(workbook, filename);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Daily Report");
+
+    XLSX.writeFile(workbook, "STYLO_DAILY_" + today + ".xlsx");
 }
+
 </script>
 
 </body>

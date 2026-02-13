@@ -3,137 +3,132 @@
 <head>
 <title>Full Day Report</title>
 <meta charset="UTF-8">
+
 <style>
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f2f2f2;
+body{
+    font-family:Arial;
+    background:#f2f2f2;
+    margin:0;
 }
 
-.header {
-    background: black;
-    color: white;
-    text-align: center;
-    padding: 15px;
-    font-size: 22px;
+.header{
+    background:black;
+    color:white;
+    text-align:center;
+    padding:15px;
+    font-size:22px;
 }
 
-.top-bar {
-    max-width: 900px;
-    margin: 15px auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+.nav{
+    display:flex;
+    justify-content:space-between;
+    padding:10px;
 }
 
-.container {
-    max-width: 900px;
-    margin: auto;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
+.nav button{
+    padding:8px 16px;
+    font-size:14px;
+    cursor:pointer;
 }
 
-.salesman {
-    border-bottom: 1px dashed #ccc;
-    padding: 12px 0;
+.container{
+    max-width:900px;
+    margin:20px auto;
+    background:white;
+    padding:20px;
+    border-radius:10px;
 }
 
-.row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 18px;
-    margin: 4px 0;
+.sale{
+    border-bottom:1px dashed #ccc;
+    padding:8px 0;
 }
 
-.final {
-    font-weight: bold;
-    font-size: 20px;
-    margin-top: 6px;
+.row{
+    display:flex;
+    justify-content:space-between;
+    margin:4px 0;
+}
+
+.delete-btn{
+    background:red;
+    color:white;
+    border:none;
+    padding:4px 8px;
+    border-radius:6px;
+    cursor:pointer;
 }
 </style>
 </head>
-
 <body>
 
 <div class="header">Full Day Report</div>
 
-<div class="top-bar">
-    <button onclick="window.location.href='index.html'">⬅ Home</button>
-    <div>
-        Select Date:
-        <input type="date" id="datePicker">
-    </div>
+<div class="nav">
+    <button onclick="window.history.back()">⬅ Back</button>
+    <button onclick="window.location.href='index.html'">🏠 Home</button>
 </div>
 
-<div class="container" id="report"></div>
+<div class="container">
+    <input type="date" id="datePicker">
+    <div id="report"></div>
+</div>
 
 <script>
-const sales = JSON.parse(localStorage.getItem("sales")) || [];
-const dateInput = document.getElementById("datePicker");
 
-// default = today
-dateInput.value = new Date().toISOString().slice(0,10);
-dateInput.onchange = loadReport;
+function loadReport(){
 
-function loadReport() {
-    const selectedDate = dateInput.value;
-    const reportBox = document.getElementById("report");
-    reportBox.innerHTML = "";
+    const sales = JSON.parse(localStorage.getItem("sales")) || [];
+    const selectedDate = document.getElementById("datePicker").value;
+    const report = document.getElementById("report");
 
-    let perSalesman = {};
+    report.innerHTML = "";
 
-    // group by salesman for selected date
-    sales.forEach(sale => {
-        if (sale.date === selectedDate) {
-            if (!perSalesman[sale.salesman]) {
-                perSalesman[sale.salesman] = { sales: 0, commission: 0 };
-            }
-            perSalesman[sale.salesman].sales += sale.amount;
-            perSalesman[sale.salesman].commission += sale.commission || 0;
-        }
-    });
+    const filtered = sales.filter(s => s.date === selectedDate);
 
-    const names = Object.keys(perSalesman);
-
-    if (names.length === 0) {
-        reportBox.innerHTML = "<p>No data for this date.</p>";
+    if(filtered.length === 0){
+        report.innerHTML = "<p>No sales found.</p>";
         return;
     }
 
-    names.forEach(name => {
-        const salesTotal = perSalesman[name].sales;
-        const commissionTotal = perSalesman[name].commission;
+    filtered.forEach(s => {
 
-        // FINAL LOCKED FORMULA
-        const finalTotal =
-            (salesTotal * 0.01) +
-            (commissionTotal - commissionTotal * 0.10);
-
-        reportBox.innerHTML += `
-            <div class="salesman">
+        report.innerHTML += `
+            <div class="sale">
                 <div class="row">
-                    <b>${name}</b>
+                    <b>${s.salesman}</b>
+                    <button class="delete-btn" onclick="deleteSale(${s.id})">Delete</button>
                 </div>
                 <div class="row">
-                    <span>Sales</span>
-                    <span>₹${salesTotal.toFixed(2)}</span>
+                    <span>Amount:</span>
+                    <span>₹${s.amount}</span>
                 </div>
                 <div class="row">
-                    <span>Commission</span>
-                    <span>₹${commissionTotal.toFixed(2)}</span>
-                </div>
-                <div class="row final">
-                    <span>Final Total</span>
-                    <span>₹${finalTotal.toFixed(2)}</span>
+                    <span>Commission:</span>
+                    <span>₹${s.commission}</span>
                 </div>
             </div>
         `;
     });
 }
 
-// initial load
+function deleteSale(id){
+
+    if(!confirm("Delete this sale?")) return;
+
+    let sales = JSON.parse(localStorage.getItem("sales")) || [];
+    sales = sales.filter(s => s.id !== id);
+    localStorage.setItem("sales", JSON.stringify(sales));
+
+    alert("Sale deleted");
+    loadReport();
+}
+
+document.getElementById("datePicker").value = new Date().toISOString().slice(0,10);
+document.getElementById("datePicker").onchange = loadReport;
+
 loadReport();
+
 </script>
 
 </body>
