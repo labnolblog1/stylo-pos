@@ -1,9 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>STYLO DRESSES POS</title>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<title>STYLO DRESSES POS</title>
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Theme Color -->
+<meta name="theme-color" content="#000000">
+
+<!-- Excel Library -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 <style>
@@ -63,7 +72,7 @@ function go(page){
 }
 
 /* ============================= */
-/*   EXPORT DAILY EXCEL (FINAL) */
+/* EXPORT DAILY EXCEL FUNCTION  */
 /* ============================= */
 
 function exportDailyExcel(){
@@ -77,10 +86,8 @@ function exportDailyExcel(){
         return;
     }
 
-    // Unique Salesmen
     const salesmen = [...new Set(todaySales.map(s => s.salesman))];
 
-    // Group Sales Per Salesman
     let grouped = {};
     salesmen.forEach(name => {
         grouped[name] = todaySales.filter(s => s.salesman === name);
@@ -88,15 +95,15 @@ function exportDailyExcel(){
 
     let rows = [];
 
-    /* HEADER ROW (Salesman Names) */
+    /* Header Row */
     let headerRow = [];
     salesmen.forEach(name => {
         headerRow.push(name);
-        headerRow.push(""); // Commission column
+        headerRow.push("");
     });
     rows.push(headerRow);
 
-    /* SALES + COMMISSION ROWS */
+    /* Sales Data */
     let maxRows = Math.max(...salesmen.map(name => grouped[name].length));
 
     for(let i=0;i<maxRows;i++){
@@ -114,10 +121,9 @@ function exportDailyExcel(){
         rows.push(row);
     }
 
-    /* BLANK ROW */
     rows.push([]);
 
-    /* CALCULATION ROWS */
+    /* Final Calculation Row */
     let finalRow = [];
 
     salesmen.forEach(name => {
@@ -127,7 +133,6 @@ function exportDailyExcel(){
 
         const onePercentSales = totalSales * 0.01;
         const tenPercentCommission = totalCommission * 0.10;
-
         const adjustedCommission = totalCommission - tenPercentCommission;
 
         const finalTotal = onePercentSales + adjustedCommission;
@@ -138,12 +143,23 @@ function exportDailyExcel(){
 
     rows.push(finalRow);
 
-    /* CREATE WORKSHEET */
     const worksheet = XLSX.utils.aoa_to_sheet(rows);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Daily Report");
 
     XLSX.writeFile(workbook, "STYLO_DAILY_" + today + ".xlsx");
+}
+
+/* ============================= */
+/* SERVICE WORKER REGISTRATION  */
+/* ============================= */
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js')
+        .then(() => console.log("Service Worker Registered"))
+        .catch(err => console.log("SW registration failed:", err));
+    });
 }
 
 </script>
